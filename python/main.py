@@ -5,7 +5,7 @@ Este módulo inicializa a aplicação FastAPI com todas as rotas,
 middlewares e configurações necessárias.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.auth import router as auth_router
@@ -13,6 +13,7 @@ from api.routes.tasks import router as tasks_router
 from api.routes.categories import router as categories_router
 from db.init_db import init_db
 
+import logging
 
 # Inicializa a aplicação FastAPI
 app = FastAPI(
@@ -25,6 +26,24 @@ app = FastAPI(
 
 # Inicializa o banco de dados
 init_db()
+
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Logger para a aplicação
+logger = logging.getLogger("__name__")
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"{request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Status: {response.status_code}")
+    return response
+
 
 # Configuração de CORS
 app.add_middleware(

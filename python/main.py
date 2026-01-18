@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.auth import router as auth_router
 from api.routes.tasks import router as tasks_router
+from api.routes.categories import router as categories_router
 from db.init_db import init_db
 
 
@@ -17,7 +18,7 @@ from db.init_db import init_db
 app = FastAPI(
     title="TodoList API",
     description="API para gerenciamento de tarefas com autenticação JWT",
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -42,6 +43,7 @@ app.add_middleware(
 # Inclui as rotas
 app.include_router(auth_router, tags=["Autenticação"])
 app.include_router(tasks_router, tags=["Tarefas"])
+app.include_router(categories_router, tags=["Categorias"])
 
 
 @app.get("/", tags=["Health Check"])
@@ -54,7 +56,7 @@ def read_root():
     """
     return {
         "message": "TodoList API está funcionando!",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "docs": "/docs"
     }
 

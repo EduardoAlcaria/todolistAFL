@@ -1,5 +1,3 @@
-// js/todolist/src/components/DeleteConfirmModal.jsx
-
 import React from 'react';
 
 const DeleteConfirmModal = ({ show, onConfirm, onCancel, loading }) => {

@@ -1,5 +1,3 @@
-// js/todolist/src/App.jsx
-
 import React, { useState } from 'react';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -14,7 +12,7 @@ const TodoListApp = () => {
     setCurrentView('tasks');
   };
 
-  const handleRegisterSuccess = (email) => {
+  const handleRegisterSuccess = () => {
     setCurrentView('login');
   };
 

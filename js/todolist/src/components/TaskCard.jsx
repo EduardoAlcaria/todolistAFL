@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Clock, Edit2, Trash2, Plus, X, Calendar, Tag } from 'lucide-react';
+import { Check, Clock, Edit2, Trash2, Plus, X, Calendar, Tag, MoreHorizontal } from 'lucide-react';
 
 // Componente separado para Subtask
 const SubtaskItem = ({ 
@@ -16,19 +16,21 @@ const SubtaskItem = ({
   const isEditing = editingTask?.id === subtask.id;
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      {/* Toggle button */}
+    <div className="flex items-center gap-2 py-1 group/subtask">
       <button
         onClick={() => onSubtaskToggle(subtask.id, !subtask.concluida)}
         disabled={loading}
         className={`
+          w-4 h-4
           flex items-center justify-center
-          w-4 h-4        
-          rounded-full   
-          border-2 border-gray-600
+          rounded-full
+          border-2
           transition-all
-          ${subtask.concluida ? 'bg-orange-500 border-orange-500' : 'hover:border-orange-500'}
-          p-0           
+          flex-shrink-0
+          ${subtask.status === 'concluida'
+            ? 'bg-orange-500 border-orange-500' 
+            : 'border-gray-600 hover:border-orange-500'
+          }
         `}
       >
         {subtask.status === 'concluida' && <Check size={10} className="text-white" />}
@@ -49,7 +51,7 @@ const SubtaskItem = ({
                 onCancelEdit();
               }
             }}
-            className="flex-1 bg-gray-900/50 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-orange-500"
+            className="flex-1 bg-[#1f1f1f] border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-orange-500"
             autoFocus
           />
           <button
@@ -57,32 +59,34 @@ const SubtaskItem = ({
               onSubtaskUpdate({ ...subtask, titulo: editingSubtaskTitle });
               onCancelEdit();
             }}
-            className="text-green-400 hover:text-green-300"
+            className="text-green-400 hover:text-green-300 p-1"
           >
-            <Check size={16} />
+            <Check size={14} />
           </button>
           <button
             onClick={onCancelEdit}
-            className="text-gray-400 hover:text-gray-300"
+            className="text-gray-400 hover:text-gray-300 p-1"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
       ) : (
         <>
-          <span className={`flex-1 ${subtask.concluida ? 'line-through text-gray-600' : 'text-gray-400'}`}>
+          <span className={`flex-1 text-sm ${
+            subtask.concluida ? 'line-through text-gray-600' : 'text-gray-300'
+          }`}>
             {subtask.titulo}
           </span>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+          <div className="flex gap-1 opacity-0 group-hover/subtask:opacity-100 transition-opacity">
             <button
               onClick={() => onEdit(subtask)}
-              className="text-gray-400 hover:text-blue-400 hover:bg-gray-700/50 rounded transition-all p-1"
+              className="text-gray-500 hover:text-blue-400 p-1 rounded hover:bg-[#3a3a3a] transition-all"
             >
               <Edit2 size={12} />
             </button>
             <button
               onClick={() => onSubtaskDelete(subtask.id)}
-              className="text-gray-400 hover:text-red-400 hover:bg-gray-700/50 rounded transition-all p-1"
+              className="text-gray-500 hover:text-red-400 p-1 rounded hover:bg-[#3a3a3a] transition-all"
             >
               <X size={12} />
             </button>
@@ -114,6 +118,7 @@ const TaskCard = ({
   
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
   
 
   const handleAddSubtask = async () => {
@@ -125,19 +130,19 @@ const TaskCard = ({
 
   if (editingTask?.id === task.id) {
     return (
-      <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50 hover:bg-gray-800/50 transition-all">
+      <div className="bg-[#282828] rounded-lg p-4 border border-[#3a3a3a]">
         <div className="space-y-3">
           <input 
             type="text" 
             value={editingTask.titulo} 
             onChange={(e) => onEdit({ ...editingTask, titulo: e.target.value })} 
-            className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500" 
+            className="w-full bg-[#1f1f1f] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500" 
             placeholder="Título da tarefa"
           />
           <textarea 
             value={editingTask.descricao} 
             onChange={(e) => onEdit({ ...editingTask, descricao: e.target.value })} 
-            className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-orange-500" 
+            className="w-full bg-[#1f1f1f] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-orange-500" 
             rows="2" 
             placeholder="Descrição"
           />
@@ -145,7 +150,7 @@ const TaskCard = ({
             <select
               value={editingTask.categoria_id || ''}
               onChange={(e) => onEdit({ ...editingTask, categoria_id: e.target.value ? parseInt(e.target.value) : null })}
-              className="bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+              className="bg-[#1f1f1f] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
             >
               <option value="">Sem categoria</option>
               {categories.map(cat => (
@@ -156,7 +161,7 @@ const TaskCard = ({
               type="date"
               value={editingTask.data_vencimento || ''}
               onChange={(e) => onEdit({ ...editingTask, data_vencimento: e.target.value || null })}
-              className="bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+              className="bg-[#1f1f1f] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
             />
           </div>
           <div className="flex gap-2">
@@ -183,126 +188,178 @@ const TaskCard = ({
   const completedSubtasks = subtasks.filter(s => s.concluida).length;
 
   return (
-    <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50 hover:bg-gray-800/50 transition-all group">
-      <div className="flex items-start gap-3">
-      <button
-        onClick={() => onToggle(task)}
-        disabled={loading}
-        className={`
-          flex items-center justify-center
-          w-7 h-7        
-          rounded-full   
-          border-2 border-gray-600
-          transition-all
-          ${task.status === 'concluida' ? 'bg-orange-500 border-orange-500' : 'hover:border-orange-500'}
-          p-0            
-        `}
-      >
-        {task.status === 'concluida' && <Check size={12} className="text-white" />}
-      </button>
-                
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h3 className={`font-medium text-sm ${task.status === 'concluida' ? 'line-through text-gray-500' : 'text-white'}`}>
+    <div className="bg-[#282828] rounded-lg border border-[#3a3a3a] hover:bg-[#2d2d2d] transition-all group">
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <button
+            onClick={() => onToggle(task)}
+            disabled={loading}
+            className={`
+              w-5 h-5
+              flex items-center justify-center
+              rounded-full
+              border-2
+              transition-all
+              flex-shrink-0
+              ${task.status === 'concluida' 
+                ? 'bg-orange-500 border-orange-500' 
+                : 'border-gray-600 hover:border-orange-500'
+              }
+            `}
+          >
+            {task.status === 'concluida' && <Check size={14} className="text-white" />}
+          </button>
+          
+          <div className="flex-1 min-w-0">
+            <h3 className={`text-sm font-medium mb-1 ${
+              task.status === 'concluida' ? 'line-through text-gray-500' : 'text-white'
+            }`}>
               {task.titulo}
             </h3>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-              <button 
-                onClick={() => onEdit(task)} 
-                className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-gray-700/50 rounded transition-all"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button 
-                onClick={() => onDelete(task.id)} 
-                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-700/50 rounded transition-all"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
 
-          {task.descricao && (
-            <p className={`text-xs mb-2 ${task.status === 'concluida' ? 'text-gray-600' : 'text-gray-400'}`}>
-              {task.descricao}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
-            {task.categoria_nome && (
-              <span 
-                className="flex items-center gap-1 px-2 py-1 rounded-full" 
-                style={{ backgroundColor: `${task.categoria_cor}20`, color: task.categoria_cor }}
-              >
-                <Tag size={10} />
-                {task.categoria_nome}
-              </span>
+            {task.descricao && (
+              <p className={`text-xs mb-2 ${
+                task.status === 'concluida' ? 'text-gray-600' : 'text-gray-400'
+              }`}>
+                {task.descricao}
+              </p>
             )}
-            {task.data_vencimento && (
-              <span className={`flex items-center gap-1 ${task.status === 'concluida' ? 'text-gray-600' : 'text-gray-500'}`}>
-                <Calendar size={12} />
-                {new Date(task.data_vencimento).toLocaleDateString('pt-BR')}
-              </span>
-            )}
-          </div>
-          
-          {subtasks.length > 0 && (
-            <div className="space-y-1 mb-2">
-              {subtasks.map(subtask => (
-                <SubtaskItem
-                  key={subtask.id}
-                  subtask={subtask}
-                  loading={loading}
-                  editingTask={editingTask}
-                  onEdit={onEdit}
-                  onCancelEdit={onCancelEdit}
-                  onSubtaskUpdate={onSubtaskUpdate}
-                  onSubtaskToggle={onSubtaskToggle}
-                  onSubtaskDelete={onSubtaskDelete}
-                />
-              ))}
 
+            {/* Metadata */}
+            <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
+              {/* Subtasks indicator */}
               {subtasks.length > 0 && (
-                <div className="text-xs text-gray-500 mt-1">
-                  {completedSubtasks}/{subtasks.length} concluídas
-                </div>
+                <span className="flex items-center gap-1 text-gray-500">
+                  <div className="w-3 h-3 rounded border border-gray-600 flex items-center justify-center">
+                    <div className={`w-1.5 h-1.5 rounded-sm ${
+                      completedSubtasks === subtasks.length ? 'bg-orange-500' : 'bg-gray-600'
+                    }`} />
+                  </div>
+                  {completedSubtasks}/{subtasks.length}
+                </span>
+              )}
+
+              {task.data_vencimento && (
+                <span className={`flex items-center gap-1 ${
+                  task.status === 'concluida' ? 'text-gray-600' : 'text-gray-500'
+                }`}>
+                  <Calendar size={12} />
+                  {formatDate(task.data_vencimento)}
+                </span>
+              )}
+
+              {task.categoria_nome && (
+                <span 
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs" 
+                  style={{ 
+                    backgroundColor: `${task.categoria_cor}20`, 
+                    color: task.categoria_cor 
+                  }}
+                >
+                  <Tag size={10} />
+                  {task.categoria_nome}
+                </span>
               )}
             </div>
-          )}
 
-          {showSubtaskInput ? (
-            <div className="flex gap-2 mt-2">
-              <input
-                type="text"
-                value={newSubtaskTitle}
-                onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddSubtask();
-                  if (e.key === 'Escape') {
-                    setShowSubtaskInput(false);
-                    setNewSubtaskTitle('');
-                  }
-                }}
-                placeholder="Nova subtarefa"
-                className="flex-1 bg-gray-900/50 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-orange-500"
-                autoFocus
-              />
-              <button onClick={handleAddSubtask} className="text-green-400 hover:text-green-300">
-                <Check size={16} />
+            {/* Subtasks */}
+            {subtasks.length > 0 && (
+              <div className="mt-2 space-y-1 pl-1">
+                {subtasks.map(subtask => (
+                  <SubtaskItem
+                    key={subtask.id}
+                    subtask={subtask}
+                    loading={loading}
+                    editingTask={editingTask}
+                    onEdit={onEdit}
+                    onCancelEdit={onCancelEdit}
+                    onSubtaskUpdate={onSubtaskUpdate}
+                    onSubtaskToggle={onSubtaskToggle}
+                    onSubtaskDelete={onSubtaskDelete}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Add subtask */}
+            {showSubtaskInput ? (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  value={newSubtaskTitle}
+                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddSubtask();
+                    if (e.key === 'Escape') {
+                      setShowSubtaskInput(false);
+                      setNewSubtaskTitle('');
+                    }
+                  }}
+                  placeholder="Nova subtarefa"
+                  className="flex-1 bg-[#1f1f1f] border border-gray-700 rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-orange-500"
+                  autoFocus
+                />
+                <button 
+                  onClick={handleAddSubtask} 
+                  className="text-green-400 hover:text-green-300 p-1"
+                >
+                  <Check size={16} />
+                </button>
+                <button 
+                  onClick={() => { 
+                    setShowSubtaskInput(false); 
+                    setNewSubtaskTitle(''); 
+                  }} 
+                  className="text-gray-400 hover:text-gray-300 p-1"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSubtaskInput(true)}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-orange-400 transition-all mt-2 opacity-0 group-hover:opacity-100"
+              >
+                <Plus size={12} />
+                Adicionar subtarefa
               </button>
-              <button onClick={() => { setShowSubtaskInput(false); setNewSubtaskTitle(''); }} className="text-gray-400 hover:text-gray-300">
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowSubtaskInput(true)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-orange-400 transition-all mt-1 opacity-0 group-hover:opacity-100"
+            )}
+          </div>
+
+          {/* Actions menu */}
+          <div className="relative flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button 
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1.5 text-gray-500 hover:text-white hover:bg-[#3a3a3a] rounded transition-all"
             >
-              <Plus size={12} />
-              Adicionar subtarefa
+              <MoreHorizontal size={16} />
             </button>
-          )}
+
+            {showMenu && (
+              <div className="absolute right-0 mt-1 bg-[#2d2d2d] border border-[#3a3a3a] rounded-lg shadow-xl z-10 min-w-[160px]">
+                <button 
+                  onClick={() => { 
+                    onEdit(task); 
+                    setShowMenu(false); 
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#3a3a3a] transition-all first:rounded-t-lg"
+                >
+                  <Edit2 size={14} />
+                  Editar
+                </button>
+                <button 
+                  onClick={() => { 
+                    onDelete(task.id); 
+                    setShowMenu(false); 
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-[#3a3a3a] transition-all last:rounded-b-lg"
+                >
+                  <Trash2 size={14} />
+                  Excluir
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,3 @@
-// js/todolist/src/components/LoginPage.jsx
-
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import api from '../services/api';
@@ -20,12 +18,10 @@ const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
 
     try {
       await api.login(loginData.email, loginData.password);
-
       const user = {
         email: loginData.email,
         name: loginData.email.split("@")[0],
       };
-
       onLoginSuccess(user);
     } catch (err) {
       console.error(err);
@@ -33,6 +29,14 @@ const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBypassLogin = () => {
+    const user = {
+      email: 'dev@test.com',
+      name: 'Developer',
+    };
+    onLoginSuccess(user);
   };
 
   return (
@@ -46,6 +50,7 @@ const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
             <h1 className="text-4xl font-bold text-white mb-2">TodoList</h1>
             <p className="text-gray-400">Organize suas tarefas</p>
           </div>
+
           <div className="space-y-4">
             <div>
               <label className="block text-gray-300 text-sm font-medium mb-2">Email</label>
@@ -58,6 +63,7 @@ const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
                 placeholder="seu@email.com" 
               />
             </div>
+
             <div>
               <label className="block text-gray-300 text-sm font-medium mb-2">Senha</label>
               <input 
@@ -69,7 +75,9 @@ const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
                 placeholder="••••••••" 
               />
             </div>
+
             {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>}
+
             <button 
               onClick={handleLogin} 
               disabled={loading} 
@@ -77,7 +85,16 @@ const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
+
+            {/* Bypass Button */}
+            <button 
+              onClick={handleBypassLogin} 
+              className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 rounded-lg transition-all border border-gray-600"
+            >
+              Entrar como Developer (Bypass)
+            </button>
           </div>
+
           <div className="mt-6 text-center">
             <button 
               onClick={onSwitchToRegister} 

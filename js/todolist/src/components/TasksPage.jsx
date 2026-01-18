@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Settings, Clock, Check, Calendar, Tag } from 'lucide-react';
+import { Plus, Settings, Calendar, Tag, List } from 'lucide-react';
 import api from '../services/api';
 import TaskCard from './TaskCard';
 import AddTaskModal from './AddTaskModal';
@@ -15,6 +15,7 @@ const TasksPage = ({ user, onLogout }) => {
   const [showAddTask, setShowAddTask] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [activeTab, setActiveTab] = useState('active');
+  const [selectedCategory, setSelectedCategory] = useState(null); // Nova state para categoria selecionada
   const [newTask, setNewTask] = useState({ 
     titulo: '', 
     descricao: '', 
@@ -22,9 +23,7 @@ const TasksPage = ({ user, onLogout }) => {
     data_vencimento: null 
   });
   const [editingTask, setEditingTask] = useState(null);
-  
-  // Ordenação
-  const [sortBy, setSortBy] = useState('category'); // 'category' ou 'date'
+  const [sortBy, setSortBy] = useState('category');
 
   useEffect(() => {
     loadTasks();
@@ -34,7 +33,6 @@ const TasksPage = ({ user, onLogout }) => {
   const loadTasks = async () => {
     try {
       const data = await api.fetchTasks();
-      // Validar e garantir que subtasks sempre seja um array
       const validatedData = Array.isArray(data) ? data.map(task => ({
         ...task,
         subtasks: Array.isArray(task.subtasks) ? task.subtasks : []
@@ -65,8 +63,7 @@ const TasksPage = ({ user, onLogout }) => {
     setError('');
 
     try {
-
-      if (newTask.data_vencimento < new Date().toISOString().split('T')[0]) {
+      if (newTask.data_vencimento && newTask.data_vencimento < new Date().toISOString().split('T')[0]) {
         setError('A data de vencimento não pode ser no passado');
         setLoading(false);
         return;
@@ -219,50 +216,60 @@ const TasksPage = ({ user, onLogout }) => {
     onLogout();
   };
 
-  // Filtrar tarefas por tab
   const filteredTasks = useMemo(() => {
+    let filtered = tasks;
+    
+    // Filtrar por status (ativa/concluída)
     if (activeTab === 'active') {
-      return tasks.filter(t => t.status !== 'concluida');
+      filtered = filtered.filter(t => t.status !== 'concluida');
     } else {
-      return tasks.filter(t => t.status === 'concluida');
+      filtered = filtered.filter(t => t.status === 'concluida');
     }
-  }, [tasks, activeTab]);
+    
+    // Filtrar por categoria selecionada
+    if (selectedCategory) {
+      filtered = filtered.filter(t => t.categoria_nome === selectedCategory);
+    }
+    
+    return filtered;
+  }, [tasks, activeTab, selectedCategory]);
 
-  // Agrupar por categoria ou data baseado em sortBy
   const groupedTasks = useMemo(() => {
     const groups = {};
 
+    const parseLocalDate = (dateString) => {
+      if (!dateString) return null;
+      const [year, month, day] = dateString.split('-');
+      return new Date(year, month - 1, day);
+    };
+
     if (sortBy === 'category') {
-      // Agrupar por categoria
       filteredTasks.forEach(task => {
-        if (!task) return; // Pular tarefas inválidas
+        if (!task) return;
         const key = task.categoria_nome || 'Sem categoria';
         if (!groups[key]) groups[key] = [];
         groups[key].push(task);
       });
 
-      // Ordenar tarefas dentro de cada grupo por data
       Object.keys(groups).forEach(key => {
         groups[key].sort((a, b) => {
           if (!a || !b) return 0;
           if (!a.data_vencimento) return 1;
           if (!b.data_vencimento) return -1;
-          return new Date(a.data_vencimento) - new Date(b.data_vencimento);
+          return parseLocalDate(a.data_vencimento) - parseLocalDate(b.data_vencimento);
         });
       });
 
     } else if (sortBy === 'date') {
-      // Agrupar por data
       filteredTasks.forEach(task => {
-        if (!task) return; // Pular tarefas inválidas
+        if (!task) return;
         const key = task.data_vencimento 
-          ? new Date(task.data_vencimento).toLocaleDateString('pt-BR')
+          ? parseLocalDate(task.data_vencimento).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })
           : 'Sem data';
         if (!groups[key]) groups[key] = [];
         groups[key].push(task);
       });
 
-      // Ordenar tarefas dentro de cada grupo por categoria
       Object.keys(groups).forEach(key => {
         groups[key].sort((a, b) => {
           if (!a || !b) return 0;
@@ -288,142 +295,239 @@ const TasksPage = ({ user, onLogout }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return null;
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const [year, month, day] = dateString.split('-'); 
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short'});
   };
 
-  const uniqueDates = useMemo(() => {
-    const dates = new Set();
-    tasks.forEach(task => {
-      if (task.data_vencimento) {
-        dates.add(task.data_vencimento);
-      }
+  // Contador de tarefas por categoria (baseado nas tarefas filtradas)
+  const categoryCount = useMemo(() => {
+    const counts = {};
+    // Usar todas as tarefas do activeTab, não as filtradas por categoria
+    const tasksForCount = activeTab === 'active' 
+      ? tasks.filter(t => t.status !== 'concluida')
+      : tasks.filter(t => t.status === 'concluida');
+      
+    tasksForCount.forEach(task => {
+      const catName = task.categoria_nome || 'Sem categoria';
+      counts[catName] = (counts[catName] || 0) + 1;
     });
-    return Array.from(dates).sort();
-  }, [tasks]);
+    return counts;
+  }, [tasks, activeTab]);
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-gray-800/30 backdrop-blur-xl rounded-2xl p-6 mb-6 border border-gray-700/50">
+    <div className="w-screen h-screen bg-[#1f1f1f] flex overflow-hidden">
+      {/* Sidebar */}
+      <aside className="w-72 bg-[#282828] border-r border-[#3a3a3a] flex flex-col overflow-y-auto">
+        <div className="p-4 border-b border-[#3a3a3a]">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white mb-1">Minhas Tarefas</h1>
-              <p className="text-gray-400 text-sm flex items-center gap-2">
-                <Clock size={14} />
-                {taskStats.total} tarefas
-              </p>
-            </div>
+            <h1 className="text-xl font-bold text-white">Minhas Tarefas</h1>
             <button 
               onClick={() => setShowSettings(true)} 
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all"
+              className="p-2 text-gray-400 hover:text-white hover:bg-[#3a3a3a] rounded-lg transition-all"
             >
-              <Settings size={20} />
+              <Settings size={18} />
             </button>
           </div>
 
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-gray-400 mb-2">
-              <span>{taskStats.completed} de {taskStats.total} concluídas</span>
-              <span>{Math.round(taskStats.percentage)}%</span>
-            </div>
-            <div className="w-full bg-gray-700/30 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-orange-500 to-orange-400 h-full rounded-full transition-all duration-500" 
-                style={{ width: `${taskStats.percentage}%` }} 
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mt-6 border-b border-gray-700/50 pb-3">
+          {/* Tabs */}
+          <div className="flex gap-2">
             <button 
               onClick={() => setActiveTab('active')} 
-              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'active' ? 'text-white border-b-2 border-orange-500' : 'text-gray-400 hover:text-gray-300'}`}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                activeTab === 'active' 
+                  ? 'bg-orange-500 text-white' 
+                  : 'text-gray-400 hover:bg-[#3a3a3a]'
+              }`}
             >
-              Ativas ({activeTasks.length})
+              Ativas {activeTasks.length}
             </button>
             <button 
               onClick={() => setActiveTab('completed')} 
-              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'completed' ? 'text-white border-b-2 border-orange-500' : 'text-gray-400 hover:text-gray-300'}`}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                activeTab === 'completed' 
+                  ? 'bg-orange-500 text-white' 
+                  : 'text-gray-400 hover:bg-[#3a3a3a]'
+              }`}
             >
-              Concluídas ({completedTasks.length})
-            </button>
-          </div>
-
-          {/* Botões de ordenação */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              onClick={() => setSortBy('category')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === 'category' ? 'bg-orange-500 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'}`}
-            >
-              <Tag size={14} className="inline mr-1" />
-              Ordenar por Categoria
-            </button>
-
-            <button
-              onClick={() => setSortBy('date')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === 'date' ? 'bg-orange-500 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'}`}
-            >
-              <Calendar size={14} className="inline mr-1" />
-              Ordenar por Data
+              Concluídas {completedTasks.length}
             </button>
           </div>
         </div>
 
-        {/* Lista de tarefas agrupadas */}
-        {Object.entries(groupedTasks).map(([groupName, groupTasks]) => (
-          <div key={groupName} className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-lg font-semibold text-white">{groupName}</h2>
-              <span className="text-sm text-gray-500">({groupTasks.length})</span>
-            </div>
-
-            {groupTasks.length === 0 ? (
-              <div className="bg-gray-800/20 rounded-2xl p-12 text-center border border-gray-700/30">
-                <Check size={48} className="text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-lg">
-                  {activeTab === 'active' ? 'Nenhuma tarefa ativa' : 'Nenhuma tarefa concluída'}
-                </p>
-                {activeTab === 'active' && (
-                  <p className="text-gray-500 text-sm mt-2">Clique no botão + para criar</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {groupTasks
-                .filter(task => task && task.id) // Validar tarefas
-                .map(task => (
-                  <TaskCard 
-                    key={task.id} 
-                    task={task} 
-                    loading={loading}
-                    onToggle={handleToggleTask}
-                    onEdit={setEditingTask}
-                    onDelete={setDeleteConfirm}
-                    editingTask={editingTask}
-                    onSaveEdit={handleUpdateTask}
-                    onCancelEdit={() => setEditingTask(null)}
-                    formatDate={formatDate}
-                    categories={categories}
-                    onSubtaskAdd={handleAddSubtask}
-                    onSubtaskUpdate={handleUpdateSubTask}
-                    onSubtaskToggle={handleToggleSubtask}
-                    onSubtaskDelete={handleDeleteSubtask}
-                  />
-                ))}
-              </div>
-            )}
+        {/* Ordenação */}
+        <div className="p-4 border-b border-[#3a3a3a]">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">Ordenar por</h3>
+          <div className="space-y-1">
+            <button
+              onClick={() => setSortBy('category')}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
+                sortBy === 'category'
+                  ? 'bg-[#3a3a3a] text-white'
+                  : 'text-gray-400 hover:bg-[#3a3a3a]'
+              }`}
+            >
+              <Tag size={16} />
+              Categoria
+            </button>
+            <button
+              onClick={() => setSortBy('date')}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
+                sortBy === 'date'
+                  ? 'bg-[#3a3a3a] text-white'
+                  : 'text-gray-400 hover:bg-[#3a3a3a]'
+              }`}
+            >
+              <Calendar size={16} />
+              Data
+            </button>
           </div>
-        ))}
+        </div>
 
+        {/* Categorias */}
+        {sortBy === 'category' && (
+          <div className="p-4 flex-1 overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase">Categorias</h3>
+              {selectedCategory && (
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className="text-xs text-orange-400 hover:text-orange-300"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            <div className="space-y-1">
+              {Object.entries(categoryCount).map(([catName, count]) => {
+                const category = categories.find(c => c.nome === catName);
+                const isSelected = selectedCategory === catName;
+                
+                return (
+                  <button
+                    key={catName}
+                    onClick={() => setSelectedCategory(isSelected ? null : catName)}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all ${
+                      isSelected
+                        ? 'bg-orange-500 text-white'
+                        : 'text-gray-300 hover:bg-[#3a3a3a]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {category && (
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: isSelected ? 'white' : category.cor }}
+                        />
+                      )}
+                      <span>{catName}</span>
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      isSelected ? 'text-white' : 'text-gray-500'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Progress bar no rodapé da sidebar */}
+        <div className="p-4 border-t border-[#3a3a3a]">
+          <div className="flex justify-between text-xs text-gray-400 mb-2">
+            <span>{taskStats.completed} de {taskStats.total}</span>
+            <span>{Math.round(taskStats.percentage)}%</span>
+          </div>
+          <div className="w-full bg-[#3a3a3a] rounded-full h-2">
+            <div 
+              className="bg-orange-500 h-full rounded-full transition-all duration-500" 
+              style={{ width: `${taskStats.percentage}%` }} 
+            />
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="px-8 py-6 border-b border-[#3a3a3a]">
+          <h2 className="text-2xl font-bold text-white mb-1">
+            {selectedCategory 
+              ? `${selectedCategory} - ${activeTab === 'active' ? 'Ativas' : 'Concluídas'}`
+              : activeTab === 'active' ? 'Tarefas Ativas' : 'Tarefas Concluídas'
+            }
+          </h2>
+          <p className="text-sm text-gray-500">
+            {activeTab === 'active' 
+              ? `${filteredTasks.length} ${filteredTasks.length === 1 ? 'tarefa' : 'tarefas'} pendente${filteredTasks.length === 1 ? '' : 's'}`
+              : `${filteredTasks.length} ${filteredTasks.length === 1 ? 'tarefa' : 'tarefas'} concluída${filteredTasks.length === 1 ? '' : 's'}`
+            }
+          </p>
+        </header>
+
+        {/* Tasks List */}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          {Object.entries(groupedTasks).map(([groupName, groupTasks]) => (
+            <div key={groupName} className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <h3 className="text-lg font-bold text-white">{groupName}</h3>
+                <span className="text-sm text-gray-500">{groupTasks.length}</span>
+              </div>
+
+              <div className="space-y-2">
+                {groupTasks
+                  .filter(task => task && task.id)
+                  .map(task => (
+                    <TaskCard 
+                      key={task.id} 
+                      task={task} 
+                      loading={loading}
+                      onToggle={handleToggleTask}
+                      onEdit={setEditingTask}
+                      onDelete={setDeleteConfirm}
+                      editingTask={editingTask}
+                      onSaveEdit={handleUpdateTask}
+                      onCancelEdit={() => setEditingTask(null)}
+                      formatDate={formatDate}
+                      categories={categories}
+                      onSubtaskAdd={handleAddSubtask}
+                      onSubtaskUpdate={handleUpdateSubTask}
+                      onSubtaskToggle={handleToggleSubtask}
+                      onSubtaskDelete={handleDeleteSubtask}
+                    />
+                  ))}
+              </div>
+            </div>
+          ))}
+
+          {Object.keys(groupedTasks).length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <List size={64} className="text-gray-600 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-400 mb-2">
+                Nenhuma tarefa {activeTab === 'active' ? 'ativa' : 'concluída'}
+                {selectedCategory && ` em "${selectedCategory}"`}
+              </h3>
+              {activeTab === 'active' && (
+                <p className="text-gray-500 text-sm">
+                  Clique no botão + para criar sua primeira tarefa
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Floating Add Button */}
         <button 
           onClick={() => setShowAddTask(true)} 
           className="fixed bottom-8 right-8 bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-full shadow-2xl transition-all transform hover:scale-110 z-50"
         >
           <Plus size={28} />
         </button>
-      </div>
+      </main>
 
+      {/* Modals */}
       <AddTaskModal 
         show={showAddTask}
         onClose={() => { 

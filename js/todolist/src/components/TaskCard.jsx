@@ -27,7 +27,7 @@ const SubtaskItem = ({
           border-2
           transition-all
           flex-shrink-0
-          ${subtask.status === 'concluida'
+          ${subtask.concluida
             ? 'bg-orange-500 border-orange-500' 
             : 'border-gray-600 hover:border-orange-500'
           }

@@ -64,7 +64,8 @@ def create_new_task(
     data: TaskCreate,
     user=Depends(get_current_user),
     conn=Depends(get_db)
-):
+): 
+
     """Cria uma nova tarefa para o usuário autenticado."""
     task_id = create_task(
         conn,

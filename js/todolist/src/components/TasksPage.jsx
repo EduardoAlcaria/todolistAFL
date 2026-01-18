@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Settings, Clock, Check, Filter, X, Calendar, Tag } from 'lucide-react';
+import { Plus, Settings, Clock, Check, Calendar, Tag } from 'lucide-react';
 import api from '../services/api';
 import TaskCard from './TaskCard';
 import AddTaskModal from './AddTaskModal';
@@ -23,10 +23,8 @@ const TasksPage = ({ user, onLogout }) => {
   });
   const [editingTask, setEditingTask] = useState(null);
   
-  // Filtros
-  const [filterType, setFilterType] = useState('none'); // 'none', 'category', 'date'
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
-  const [selectedDateFilter, setSelectedDateFilter] = useState(null);
+  // Ordenação
+  const [sortBy, setSortBy] = useState('category'); // 'category' ou 'date'
 
   useEffect(() => {
     loadTasks();
@@ -36,9 +34,14 @@ const TasksPage = ({ user, onLogout }) => {
   const loadTasks = async () => {
     try {
       const data = await api.fetchTasks();
-      setTasks(data);
+      // Validar e garantir que subtasks sempre seja um array
+      const validatedData = Array.isArray(data) ? data.map(task => ({
+        ...task,
+        subtasks: Array.isArray(task.subtasks) ? task.subtasks : []
+      })) : [];
+      setTasks(validatedData);
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao carregar tarefas:', err);
       setError("Erro ao carregar tarefas");
     }
   };
@@ -62,6 +65,13 @@ const TasksPage = ({ user, onLogout }) => {
     setError('');
 
     try {
+
+      if (newTask.data_vencimento < new Date().toISOString().split('T')[0]) {
+        setError('A data de vencimento não pode ser no passado');
+        setLoading(false);
+        return;
+      }
+      
       await api.createTask({
         titulo: newTask.titulo,
         descricao: newTask.descricao,
@@ -151,14 +161,18 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
-  // Subtasks
   const handleAddSubtask = async (taskId, titulo) => {
     if (!taskId || !titulo.trim()) return;
+    
+    setLoading(true);
     try {
       await api.createSubtask(taskId, { titulo, concluida: false });
       await loadTasks();
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao criar subtask:', err);
+      setError('Erro ao criar subtarefa');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -205,56 +219,62 @@ const TasksPage = ({ user, onLogout }) => {
     onLogout();
   };
 
-  // Filtros
+  // Filtrar tarefas por tab
   const filteredTasks = useMemo(() => {
-    let filtered = tasks;
-    
     if (activeTab === 'active') {
-      filtered = filtered.filter(t => t.status !== 'concluida');
+      return tasks.filter(t => t.status !== 'concluida');
     } else {
-      filtered = filtered.filter(t => t.status === 'concluida');
+      return tasks.filter(t => t.status === 'concluida');
     }
+  }, [tasks, activeTab]);
 
-    if (filterType === 'category' && selectedCategoryFilter) {
-      filtered = filtered.filter(t => t.categoria_id === selectedCategoryFilter);
-    }
-
-    if (filterType === 'date' && selectedDateFilter) {
-      filtered = filtered.filter(t => {
-        if (!t.data_vencimento) return false;
-        return t.data_vencimento === selectedDateFilter;
-      });
-    }
-
-    return filtered;
-  }, [tasks, activeTab, filterType, selectedCategoryFilter, selectedDateFilter]);
-
-  // Agrupar por categoria ou data
+  // Agrupar por categoria ou data baseado em sortBy
   const groupedTasks = useMemo(() => {
-    if (filterType === 'none') {
-      return { 'Todas': filteredTasks };
-    }
-
     const groups = {};
 
-    if (filterType === 'category') {
+    if (sortBy === 'category') {
+      // Agrupar por categoria
       filteredTasks.forEach(task => {
+        if (!task) return; // Pular tarefas inválidas
         const key = task.categoria_nome || 'Sem categoria';
         if (!groups[key]) groups[key] = [];
         groups[key].push(task);
       });
-    } else if (filterType === 'date') {
+
+      // Ordenar tarefas dentro de cada grupo por data
+      Object.keys(groups).forEach(key => {
+        groups[key].sort((a, b) => {
+          if (!a || !b) return 0;
+          if (!a.data_vencimento) return 1;
+          if (!b.data_vencimento) return -1;
+          return new Date(a.data_vencimento) - new Date(b.data_vencimento);
+        });
+      });
+
+    } else if (sortBy === 'date') {
+      // Agrupar por data
       filteredTasks.forEach(task => {
+        if (!task) return; // Pular tarefas inválidas
         const key = task.data_vencimento 
           ? new Date(task.data_vencimento).toLocaleDateString('pt-BR')
           : 'Sem data';
         if (!groups[key]) groups[key] = [];
         groups[key].push(task);
       });
+
+      // Ordenar tarefas dentro de cada grupo por categoria
+      Object.keys(groups).forEach(key => {
+        groups[key].sort((a, b) => {
+          if (!a || !b) return 0;
+          const catA = a.categoria_nome || 'Sem categoria';
+          const catB = b.categoria_nome || 'Sem categoria';
+          return catA.localeCompare(catB);
+        });
+      });
     }
 
     return groups;
-  }, [filteredTasks, filterType]);
+  }, [filteredTasks, sortBy]);
 
   const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'concluida'), [tasks]);
   const completedTasks = useMemo(() => tasks.filter(t => t.status === 'concluida'), [tasks]);
@@ -330,96 +350,35 @@ const TasksPage = ({ user, onLogout }) => {
             </button>
           </div>
 
-          {/* Filtros */}
+          {/* Botões de ordenação */}
           <div className="mt-4 flex flex-wrap gap-2">
             <button
-              onClick={() => {
-                setFilterType('none');
-                setSelectedCategoryFilter(null);
-                setSelectedDateFilter(null);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filterType === 'none' ? 'bg-orange-500 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'}`}
+              onClick={() => setSortBy('category')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === 'category' ? 'bg-orange-500 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'}`}
             >
-              <Filter size={14} className="inline mr-1" />
-              Todas
+              <Tag size={14} className="inline mr-1" />
+              Ordenar por Categoria
             </button>
 
-            <div className="relative">
-              <button
-                onClick={() => setFilterType(filterType === 'category' ? 'none' : 'category')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filterType === 'category' ? 'bg-orange-500 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'}`}
-              >
-                <Tag size={14} className="inline mr-1" />
-                Por Categoria
-              </button>
-              {filterType === 'category' && (
-                <div className="absolute top-full mt-2 left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-10 min-w-[200px]">
-                  {categories.map(cat => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategoryFilter(cat.id)}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-all ${selectedCategoryFilter === cat.id ? 'bg-gray-700 text-orange-400' : 'text-white'}`}
-                    >
-                      <span 
-                        className="inline-block w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: cat.cor }}
-                      />
-                      {cat.nome}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="relative">
-              <button
-                onClick={() => setFilterType(filterType === 'date' ? 'none' : 'date')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filterType === 'date' ? 'bg-orange-500 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'}`}
-              >
-                <Calendar size={14} className="inline mr-1" />
-                Por Data
-              </button>
-              {filterType === 'date' && (
-                <div className="absolute top-full mt-2 left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-10 min-w-[200px] max-h-[300px] overflow-y-auto">
-                  {uniqueDates.map(date => (
-                    <button
-                      key={date}
-                      onClick={() => setSelectedDateFilter(date)}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-all ${selectedDateFilter === date ? 'bg-gray-700 text-orange-400' : 'text-white'}`}
-                    >
-                      {new Date(date).toLocaleDateString('pt-BR')}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {(selectedCategoryFilter || selectedDateFilter) && (
-              <button
-                onClick={() => {
-                  setSelectedCategoryFilter(null);
-                  setSelectedDateFilter(null);
-                }}
-                className="px-3 py-1.5 rounded-lg text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
-              >
-                <X size={14} className="inline mr-1" />
-                Limpar filtro
-              </button>
-            )}
+            <button
+              onClick={() => setSortBy('date')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === 'date' ? 'bg-orange-500 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'}`}
+            >
+              <Calendar size={14} className="inline mr-1" />
+              Ordenar por Data
+            </button>
           </div>
         </div>
 
         {/* Lista de tarefas agrupadas */}
         {Object.entries(groupedTasks).map(([groupName, groupTasks]) => (
           <div key={groupName} className="mb-6">
-            {filterType !== 'none' && (
-              <div className="flex items-center gap-2 mb-3">
-                <h2 className="text-lg font-semibold text-white">{groupName}</h2>
-                <span className="text-sm text-gray-500">({groupTasks.length})</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-lg font-semibold text-white">{groupName}</h2>
+              <span className="text-sm text-gray-500">({groupTasks.length})</span>
+            </div>
 
-            {groupTasks.length === 0 && filterType === 'none' ? (
+            {groupTasks.length === 0 ? (
               <div className="bg-gray-800/20 rounded-2xl p-12 text-center border border-gray-700/30">
                 <Check size={48} className="text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 text-lg">
@@ -432,7 +391,7 @@ const TasksPage = ({ user, onLogout }) => {
             ) : (
               <div className="space-y-3">
                 {groupTasks
-                .filter(Boolean)
+                .filter(task => task && task.id) // Validar tarefas
                 .map(task => (
                   <TaskCard 
                     key={task.id} 

@@ -20,22 +20,23 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 def get_current_user(token: str = Depends(oauth2_scheme), conn=Depends(get_db)):
     """
     Obtém o usuário atual a partir do token JWT.
-
-    Args:
-        token: Token JWT do header Authorization
-        conn: Conexão com o banco de dados
-
-    Returns:
-        dict: Dados do usuário autenticado
-
-    Raises:
-        HTTPException: Se o token for inválido ou o usuário não existir
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Não foi possível validar as credenciais",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # BYPASS PARA DESENVOLVIMENTO - REMOVER EM PRODUÇÃO!
+    if token.startswith('dev-bypass-token-'):
+        # Retorna ou cria usuário de desenvolvimento
+        dev_user = get_user_by_email(conn, 'dev@test.com')
+        if not dev_user:
+            from core.security import hash_password
+            from repositories.user_repo import create_user
+            create_user(conn, 'dev@test.com', hash_password('dev123'))
+            dev_user = get_user_by_email(conn, 'dev@test.com')
+        return dev_user
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

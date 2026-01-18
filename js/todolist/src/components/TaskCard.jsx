@@ -14,6 +14,7 @@ const TaskCard = ({
   formatDate,
   categories,
   onSubtaskAdd,
+  onSubtaskUpdate,
   onSubtaskToggle,
   onSubtaskDelete
 }) => {
@@ -162,43 +163,92 @@ const TaskCard = ({
           
 
           {subtasks.length > 0 && (
-            <div className="space-y-1 mb-2">
-              {subtasks.map(subtask => (
-              <div key={subtask.id} className="flex items-center gap-2 text-xs">
-                <button
-                  onClick={() => onSubtaskToggle(subtask.id, !subtask.concluida)}
-                  disabled={loading}
-                  className={`
-                    flex items-center justify-center
-                    w-4 h-4        
-                    rounded-full   
-                    border-2 border-gray-600
-                    transition-all
-                    ${subtask.concluida ? 'bg-orange-500 border-orange-500' : 'hover:border-orange-500'}
-                    p-0           
-                  `}
-                >
-                  {task.status === 'concluida' && <Check size={10} className="text-white" />}
-                </button>
-                <span className={`flex-1 ${subtask.concluida ? 'line-through text-gray-600' : 'text-gray-400'}`}>
-                  {subtask.titulo}
-                </span>
-                <button
-                  onClick={() => onSubtaskDelete(subtask.id)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
+  <div className="space-y-1 mb-2">
+    {subtasks.map(subtask => {
+  const [editingSubtaskTitle, setEditingSubtaskTitle] = useState(subtask.titulo);
 
-              {subtasks.length > 0 && (
-                <div className="text-xs text-gray-500 mt-1">
-                  {completedSubtasks}/{subtasks.length} concluídas
-                </div>
-              )}
-            </div>
-          )}
+  return (
+    <div key={subtask.id} className="flex items-center gap-2 text-xs">
+      {/* Toggle button */}
+      <button
+        onClick={() => onSubtaskToggle(subtask.id, !subtask.concluida)}
+        disabled={loading}
+        className={`
+          flex items-center justify-center
+          w-4 h-4        
+          rounded-full   
+          border-2 border-gray-600
+          transition-all
+          ${subtask.concluida ? 'bg-orange-500 border-orange-500' : 'hover:border-orange-500'}
+          p-0           
+        `}
+      >
+        {subtask.status === 'concluida' && <Check size={10} className="text-white" />}
+      </button>
+
+      {editingTask?.id === subtask.id ? (
+        <div className="flex-1 flex gap-1">
+          <input
+            type="text"
+            value={editingSubtaskTitle}
+            onChange={(e) => setEditingSubtaskTitle(e.target.value)} // only updates local temp state
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onSubtaskUpdate({ ...subtask, titulo: editingSubtaskTitle }); // update backend
+                onCancelEdit(); // close edit mode
+              }
+            }}
+            className="flex-1 bg-gray-900/50 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-orange-500"
+            autoFocus
+          />
+          <button
+            onClick={() => {
+              onSubtaskUpdate({ ...subtask, titulo: editingSubtaskTitle });
+              onCancelEdit();
+            }}
+            className="text-green-400 hover:text-green-300"
+          >
+            <Check size={16} />
+          </button>
+          <button
+            onClick={onCancelEdit}
+            className="text-gray-400 hover:text-gray-300"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <>
+          <span className={`flex-1 ${subtask.concluida ? 'line-through text-gray-600' : 'text-gray-400'}`}>
+            {subtask.titulo}
+          </span>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            <button
+              onClick={() => onEdit(subtask)}
+              className="text-gray-400 hover:text-blue-400 hover:bg-gray-700/50 rounded transition-all p-1"
+            >
+              <Edit2 size={12} />
+            </button>
+            <button
+              onClick={() => onSubtaskDelete(subtask.id)}
+              className="text-gray-400 hover:text-red-400 hover:bg-gray-700/50 rounded transition-all p-1"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+})}
+
+    {subtasks.length > 0 && (
+      <div className="text-xs text-gray-500 mt-1">
+        {completedSubtasks}/{subtasks.length} concluídas
+      </div>
+    )}
+  </div>
+)}
 
           {showSubtaskInput ? (
             <div className="flex gap-2 mt-2">

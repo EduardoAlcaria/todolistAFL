@@ -162,6 +162,26 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  const handleUpdateSubTask = async (subtask) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      await api.updateSubtask(subtask.id, {
+        titulo: subtask.titulo,
+        status: subtask.status,
+      });
+
+      await loadTasks();
+      setEditingTask(null);
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao atualizar tarefa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleToggleSubtask = async (subtaskId, concluida) => {
     try {
       await api.updateSubtask(subtaskId, { concluida });
@@ -427,6 +447,7 @@ const TasksPage = ({ user, onLogout }) => {
                     formatDate={formatDate}
                     categories={categories}
                     onSubtaskAdd={handleAddSubtask}
+                    onSubtaskUpdate={handleUpdateSubTask}
                     onSubtaskToggle={handleToggleSubtask}
                     onSubtaskDelete={handleDeleteSubtask}
                   />

@@ -53,6 +53,18 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+
+  function isPastDate(dateStr) {
+      if (!dateStr) return false;
+
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const inputDate = new Date(year, month - 1, day); // local midnight
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      return inputDate.getTime() < today.getTime();
+    }
+  
   const handleCreateTask = async () => {
     if (!newTask.titulo.trim()) {
       setError('O título da tarefa é obrigatório');
@@ -63,7 +75,7 @@ const TasksPage = ({ user, onLogout }) => {
     setError('');
 
     try {
-      if (newTask.data_vencimento && newTask.data_vencimento < new Date().toISOString().split('T')[0]) {
+      if (newTask.data_vencimento && isPastDate(newTask.data_vencimento)) {
         setError('A data de vencimento não pode ser no passado');
         setLoading(false);
         return;

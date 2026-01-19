@@ -4,6 +4,8 @@ Gerenciamento de conexão com banco de dados.
 Este módulo fornece funções para obter conexões com o banco SQLite.
 """
 
+from asyncio.log import logger
+from http.client import HTTPException
 import sqlite3
 from typing import Generator
 
@@ -19,9 +21,14 @@ def get_db() -> Generator:
         A conexão é automaticamente fechada após o uso.
         Row factory configurado para retornar dicionários.
     """
-    conn = sqlite3.connect("todolist.db")
-    conn.row_factory = sqlite3.Row
+
     try:
+        conn = sqlite3.connect("todolist.db")
+        conn.row_factory = sqlite3.Row
         yield conn
+    except sqlite3.Error as e:
+        logger.error(f"Erro ao conectar ao banco: {e}")
+        raise HTTPException(500, "Erro interno do servidor")
     finally:
-        conn.close()
+        if conn:
+            conn.close()

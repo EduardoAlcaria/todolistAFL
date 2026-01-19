@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "https://todolist-backend-1099393198012.us-central1.run.app";
 
 class ApiService {
   async login(email, password) {

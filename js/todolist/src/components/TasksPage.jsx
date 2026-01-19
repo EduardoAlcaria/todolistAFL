@@ -1,3 +1,8 @@
+// TasksPage.jsx
+// Este componente é responsável por renderizar a página principal de tarefas, incluindo a barra lateral, lista de tarefas e modais.
+// Ele gerencia o estado das tarefas, categorias, modais e interações do usuário.
+
+// Importações necessárias
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Settings, Calendar, Tag, List } from 'lucide-react';
 import api from '../services/api';
@@ -6,7 +11,9 @@ import AddTaskModal from './AddTaskModal';
 import SettingsModal from './SettingsModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 
+// Componente principal
 const TasksPage = ({ user, onLogout }) => {
+  // Estados locais para gerenciar tarefas, categorias, erros, carregamento e modais
   const [tasks, setTasks] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +22,7 @@ const TasksPage = ({ user, onLogout }) => {
   const [showAddTask, setShowAddTask] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [activeTab, setActiveTab] = useState('active');
-  const [selectedCategory, setSelectedCategory] = useState(null); // Nova state para categoria selecionada
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [newTask, setNewTask] = useState({ 
     titulo: '', 
     descricao: '', 
@@ -25,11 +32,13 @@ const TasksPage = ({ user, onLogout }) => {
   const [editingTask, setEditingTask] = useState(null);
   const [sortBy, setSortBy] = useState('category');
 
+  // Efeito para carregar tarefas e categorias ao montar o componente
   useEffect(() => {
     loadTasks();
     loadCategories();
   }, []);
 
+  // Função para carregar tarefas do servidor
   const loadTasks = async () => {
     try {
       const data = await api.fetchTasks();
@@ -44,6 +53,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para carregar categorias do servidor
   const loadCategories = async () => {
     try {
       const data = await api.fetchCategories();
@@ -53,18 +63,19 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
-
+  // Função para verificar se a data é anterior à data atual
   function isPastDate(dateStr) {
       if (!dateStr) return false;
 
       const [year, month, day] = dateStr.split('-').map(Number);
-      const inputDate = new Date(year, month - 1, day); // local midnight
+      const inputDate = new Date(year, month - 1, day);
       const today = new Date();
       today.setHours(0,0,0,0);
 
       return inputDate.getTime() < today.getTime();
     }
   
+  // Função para criar uma nova tarefa
   const handleCreateTask = async () => {
     if (!newTask.titulo.trim()) {
       setError('O título da tarefa é obrigatório');
@@ -100,6 +111,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para atualizar uma tarefa existente
   const handleUpdateTask = async (task) => {
     setLoading(true);
     setError('');
@@ -123,6 +135,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para alternar o status de uma tarefa entre concluída e pendente
   const handleToggleTask = async (task) => {
     setLoading(true);
 
@@ -145,6 +158,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para excluir uma tarefa
   const handleDeleteTask = async (taskId) => {
     setLoading(true);
 
@@ -160,6 +174,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para criar uma nova categoria
   const handleCreateCategory = async (nome, cor) => {
     try {
       await api.createCategory({ nome, cor });
@@ -170,6 +185,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para adicionar uma subtask a uma tarefa
   const handleAddSubtask = async (taskId, titulo) => {
     if (!taskId || !titulo.trim()) return;
     
@@ -185,6 +201,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para atualizar uma subtask existente
   const handleUpdateSubTask = async (subtask) => {
     setLoading(true);
     setError('');
@@ -205,6 +222,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para alternar o status de uma subtask entre concluída e pendente
   const handleToggleSubtask = async (subtaskId, concluida) => {
     try {
       await api.updateSubtask(subtaskId, { concluida });
@@ -214,6 +232,7 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para excluir uma subtask
   const handleDeleteSubtask = async (subtaskId) => {
     try {
       await api.deleteSubtask(subtaskId);
@@ -223,11 +242,13 @@ const TasksPage = ({ user, onLogout }) => {
     }
   };
 
+  // Função para logout do usuário
   const handleLogout = () => {
     api.logout();
     onLogout();
   };
 
+  // Filtra as tarefas com base na aba ativa e na categoria selecionada
   const filteredTasks = useMemo(() => {
     let filtered = tasks;
     
@@ -246,6 +267,7 @@ const TasksPage = ({ user, onLogout }) => {
     return filtered;
   }, [tasks, activeTab, selectedCategory]);
 
+  // Agrupa as tarefas filtradas por categoria ou data, dependendo da configuração de ordenação
   const groupedTasks = useMemo(() => {
     const groups = {};
 

@@ -1,7 +1,13 @@
+// TaskCard.jsx
+// Este componente é responsável por renderizar cada tarefa individual, incluindo suas subtarefas e ações associadas.
+// Ele também gerencia a edição de tarefas e subtarefas, bem como a adição de novas subtarefas.
+
+// Importações necessárias
 import React, { useState } from 'react';
 import { Check, Clock, Edit2, Trash2, Plus, X, Calendar, Tag, MoreHorizontal } from 'lucide-react';
 
-// Componente separado para Subtask
+// Componente SubtaskItem
+// Este componente renderiza uma subtarefa individual e permite ações como edição, exclusão e alternância de status.
 const SubtaskItem = ({ 
   subtask, 
   loading, 
@@ -97,6 +103,8 @@ const SubtaskItem = ({
   );
 };
 
+// Componente principal TaskCard
+// Este componente renderiza uma tarefa individual, incluindo subtarefas e ações como edição, exclusão e alternância de status.
 const TaskCard = ({ 
   task, 
   loading, 
@@ -115,11 +123,10 @@ const TaskCard = ({
 }) => {
 
   if (!task || !task.id) return null;
-  
+
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [showMenu, setShowMenu] = useState(false);
-  
 
   const handleAddSubtask = async () => {
     if (!task?.id || !newSubtaskTitle.trim()) return;

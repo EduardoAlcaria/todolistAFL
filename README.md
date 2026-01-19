@@ -5,7 +5,7 @@
 TodoList é uma aplicação full-stack de gerenciamento de tarefas com autenticação JWT, categorias personalizadas, subtarefas e interface moderna. O projeto utiliza Python (FastAPI) no backend e React no frontend, com deploy na Google Cloud Platform (GCP).
 
 **Links de Acesso:**
-- **Frontend**: [https://todolist-frontend-1099393198012.us-central1.run.app](https://todolist-frontend-1099393198012.us-central1.run.app/)
+- **App**: [https://todolist-frontend-1099393198012.us-central1.run.app](https://todolist-frontend-1099393198012.us-central1.run.app/)
 
 
 ---

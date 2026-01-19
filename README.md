@@ -34,23 +34,49 @@ Uma aplicação full-stack de gerenciamento de tarefas (to-do list) com backend 
 ## Estrutura do Projeto
 
 ```
-python/           # Backend FastAPI
-  api/            # Rotas da API (autenticação, tarefas, categorias)
-  core/           # Segurança e configuração (JWT, hash)
-  db/             # Conexão e inicialização do banco
-  models/         # Modelos Pydantic
-  repositories/   # Acesso a dados
-  services/       # Lógica de autenticação
+python/                     # Backend
+├── api/                     # Rotas da API
+│   ├── deps.py              # Dependências (autenticação)
+│   └── routes/
+│       ├── auth.py          # Rotas de autenticação
+│       └── tasks.py         # Rotas de tarefas
+├── core/
+│   ├── config.py            # Configurações
+│   └── security.py          # Funções de segurança
+├── db/
+│   ├── database.py          # Conexão DB
+│   └── init_db.py           # Inicialização DB
+├── models/
+│   ├── user.py              # Modelos de usuário
+│   └── tasks.py             # Modelos de tarefa
+├── repositories/
+│   ├── user_repo.py         # Repositório de usuários
+│   └── task_repo.py         # Repositório de tarefas
+├── services/
+│   └── auth_service.py      # Serviço de autenticação
+└── main.py                  # Aplicação principal
 
-js/todolist/      # Frontend React
-  src/components/ # Componentes reutilizáveis
-  src/services/   # Serviços de comunicação com API
+js/todolist/                 # Frontend
+├── src/
+│   ├── components/          # Componentes reutilizáveis
+│   │   ├── AddTaskModal.jsx
+│   │   ├── DeleteConfirmModal.jsx
+│   │   ├── LoginPage.jsx
+│   │   ├── RegisterPage.jsx
+│   │   ├── SettingsModal.jsx
+│   │   └── TasksPage.jsx
+│   ├── services/
+│   │   └── api.js           # Serviço de comunicação com API
+│   ├── main.jsx             # Entry point
+│   └── index.css            # Estilos globais
+├── public/
+├── index.html
+└── vite.config.js
 ```
 
 ## Acessando a Aplicação
 
-* **App:** https://todolist-frontend-1099393198012.us-central1.run.app
-
+* **App:** [https://todolist-frontend-1099393198012.us-central1.run.app](https://todolist-frontend-1099393198012.us-central1.run.app)
 
 ## Documentação do Código
 

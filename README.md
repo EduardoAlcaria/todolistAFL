@@ -49,9 +49,8 @@ js/todolist/      # Frontend React
 
 ## Acessando a Aplicação
 
-* **Frontend:** https://todolist-frontend-1099393198012.us-central1.run.app/
+* **App:** https://todolist-frontend-1099393198012.us-central1.run.app
 
-> Para detalhes completos sobre a API, você pode acessar a documentação interativa depois do deploy.
 
 ## Documentação do Código
 

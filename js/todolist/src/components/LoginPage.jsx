@@ -33,7 +33,7 @@ const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
 
   const handleBypassLogin = () => {
     // Gera um token fake para desenvolvimento
-    // Em produção, isso não funcionaria pois o backend valida o token
+   
     const fakeToken = 'dev-bypass-token-' + Date.now();
     localStorage.setItem('access_token', fakeToken);
     
